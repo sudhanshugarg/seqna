@@ -3,6 +3,8 @@
 #include<string>
 #include<map>
 #include<algorithm>
+#include<fstream>
+#include<sstream>
 using namespace std;
 
 vector<string> ret;
@@ -49,17 +51,26 @@ bool canAppend(int &base, string &s){
     return 1;
 }
 
+int createSingleSeq(string &seq, vector<string> &ret){
+    string passOn;
+    for (int i=0;i<4;i++){
+        if(canAppend(i,seq)){
+            passOn = seq + baseToChar(i);
+            ret.push_back(passOn);
+        }
+    }
+}
+
 int createseq(string &seqSoFar){
     if(seqSoFar.length() >= n){ 
         cout << seqSoFar << endl;
         ret.push_back(seqSoFar);
         return 0;
     }
-    string curr = "";
 
+    string passOn;
     for (int i=0;i<4;i++){
         if(canAppend(i,seqSoFar)){
-            string passOn;
             passOn = seqSoFar + baseToChar(i);
             createseq(passOn);
         }
@@ -96,9 +107,76 @@ int main(int argc, char **argv){
     //n is the length of the sequence you want.
     n = atoi(argv[1]);
     cout << n << endl;
+
+    //2 strategies.
+    //a) Design all sequences from scratch.
+    //b) For each sequence of length n, we can only
+    //consider sequences of length n-1, and add each
+    //a base to it. This technique, also known 
+    //as memoization, will remove a lot of duplicate
+    //computation.
+
+
+    /*
+    //a) Strategy 1.
     string seq = "";
     createseq(seq);
     cout << ret.size() << endl;
     //for(int i=0;i<ret.size();i++)
       //  cout << ret[i] << endl;
+    */
+
+    //b) Strategy 2.
+    n = 4;
+    string seq = "";
+    createseq(seq);
+    ofstream writeFile;
+    writeFile.open("4.seq");
+    for(int i=0;i<ret.size();i++){
+        writeFile << ret[i] << endl;
+    }
+    writeFile.close();
+
+    //all sequences of length 4 have been calculated.
+    //for length i, only consider those of length i-1.
+    //this assumes all sequences of length i are stored
+    //in a file named i.seq.
+    n = atoi(argv[1]);
+    
+    ifstream readFile;
+
+    for(int i=5;i <= n; i++){
+        ostringstream ossRead, ossWrite;
+        ossRead << i-1;
+        ossRead << ".seq";
+        ossWrite << i;
+        ossWrite << ".seq";
+        cout << ossRead.str();
+        cout << ossWrite.str();
+
+        //check if i.seq exists, if so, move
+        //to the next file
+        ifstream checkFileExists(ossWrite.str().c_str());
+        if(checkFileExists){
+            i++;
+            continue;
+        }
+        readFile.open(ossRead.str().c_str());
+        writeFile.open(ossWrite.str().c_str());
+
+
+        string seq;
+        vector<string> vseq;
+        while(getline(readFile,seq)){
+            //cout << seq << "::" << endl;
+            createSingleSeq(seq,vseq);
+            for (int j=0;j<vseq.size();j++){
+                writeFile << vseq[j] << endl;
+                //cout << vseq[j] << endl;
+            }
+            vseq.clear();
+        }
+        readFile.close();
+        writeFile.close();
+    }
 }
