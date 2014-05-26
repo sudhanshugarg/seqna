@@ -101,9 +101,9 @@ function s = solveode2(fn, init)
    options(1) = 100;
    options(3) = 1;
    options(5) = 0;
-   %[t1x3,y1x3] = processData('system-b/PurifiedSysB-Apr18-200nM.csv' , 3, 4, 760, 7830,options,0,0);
-   [t1x2,y1x2] = readlhcfile('system-b/PurifiedSysB-Apr18-200nM.csv' , 1, 2, 7900/60, 9900/60);
-   [t0x2,y0x2] = processData('system-b/PurifiedSysB-Apr18-200nM.csv' , 1, 2, 767, 7836,options,0,y1x2);
+   %[t1x3,y1x3] = processData('sampledata.csv' , 3, 4, 760, 7830,options,0,0);
+   [t1x2,y1x2] = readlhcfile('sampledata.csv' , 1, 2, 7900/60, 9900/60);
+   [t0x2,y0x2] = processData('sampledata.csv' , 1, 2, 767, 7836,options,0,y1x2);
 
    tcalc = t0x2;
    ycalc = y0x2;
