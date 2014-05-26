@@ -1,0 +1,73 @@
+directive sample 1520.0 1000
+rate k1 = 3.85e-4; 
+rate k2 = 5.05e-16;
+rate k3 = 1.7e-4;
+rate k4 = 9.22e+2;
+rate k5 = 5.05e-15;
+rate k6 = 9.22e+2;
+rate k7 = 4e-3;
+rate k8 = 5e-6;
+rate k9 = 3.9672e-3;
+init B1 87.46	 |
+init B2 92.95 |
+init B3 86.38 |
+init RC 94 |
+init A1 95.77 |
+init A2 88.02 |
+init A3 93.12 |
+init TA 100 |
+init TB 100
+| A1 + TB1 ->{k1} A1TB1
+| A1TB1 + A2 ->{k1} A12TB1
+| A12TB1 + A3 ->{k1} A123TB1
+| A123TB1 ->{k2} A123 + TB1
+| A1 + A2 -> {k5} A12
+| A2 + A3 -> {k5} A23
+| A3 + A1 -> {k5} A31
+| A1 + A23 -> {k1} A123
+| A2 + A31 -> {k1} A123
+| A3 + A12 -> {k1} A123
+| TA1 + TA2 -> {k7} TA
+| TA -> {k8} TA1 + TA2
+| A123 + TA -> {k3} TA1 + A123TA2
+| A123TB1 + TA -> {k3} TA1 + A123TB1TA2
+| A123TB1TA2 ->{k2} A123TA2 + TB1
+| A23 + TA -> {k3} TA1 + A23TA2
+| A31 + TA -> {k3} TA1 + A31TA2
+| A23TA2 + A1 -> {k1} A123TA2
+| A31TA2 + A2 -> {k1} A123TA2
+| B1 + TA1 ->{k1} B1TA1
+| B1TA1 + B2 ->{k1} B12TA1
+| B12TA1 + B3 ->{k1} B123TA1
+| B123TA1 ->{k2} B123 + TA1
+| B1 + B2 -> {k5} B12
+| B2 + B3 -> {k5} B23
+| B3 + B1 -> {k5} B31
+| B1 + B23 -> {k1} B123
+| B2 + B31 -> {k1} B123
+| B3 + B12 -> {k1} B123
+| TB1 + TB2 -> {k7} TB
+| TB -> {k8} TB1 + TB2
+| B123 + TB -> {k3} TB1 + B123TB2
+| B123TA1 + TB -> {k3} TB1 + B123TA1TB2
+| B123TA1TB2 ->{k2} B123TB2 + TA1
+| TET + FQ -> {k7} RC
+| RC -> {k9} TET + FQ
+| B2 + RC -> {k6} B2FQ + TET
+| B2FQ + B1 -> {k1} B12FQ
+| B2FQ + B3 -> {k1} B23FQ
+| B12 + RC -> {k4} B12FQ + TET
+| B12TA1 + RC -> {k4} B12FQTA1 + TET
+| B12FQTA1 + B3 -> {k1} B123FQTA1
+| B23 + RC -> {k4} B23FQ + TET
+| B12FQ + B3 -> {k1} B123FQ
+| B23FQ + B1 -> {k1} B123FQ
+| B123 + RC -> {k4} B123FQ + TET
+| B123TA1 + RC -> {k4} B123FQTA1 + TET
+| B123FQTA1 -> {k2} B123FQ + TA1
+| B123FQTA1 + TB -> {k3} B123FQTA1TB2 + TB1
+| B123FQ + TB -> {k3} B123FQTB2 + TB1
+| B123TB2 + RC -> {k4} B123FQTB2 + TET
+| B123TA1TB2 + RC -> {k4} B123FQTA1TB2 + TET
+| B123FQTA1TB2 ->{k2} B123FQTB2 + TA1
+| Signal + RC -> {k4} SFQ + TET
