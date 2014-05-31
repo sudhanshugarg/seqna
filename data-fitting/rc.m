@@ -182,7 +182,7 @@ function [err] = only_leastsquares(y1, y2)
     err = sum(diff .^ 2);
 endfunction
 
-function [kfit] = fit_rate_constants(t, y, fn, kinit, kmethod, init, curve, iter)
+function [kfit] = fit_rate_constants(t, y, fn, kinit, kmethod, kinterval, init, curve, iter)
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %BOOK KEEPING
@@ -227,8 +227,8 @@ function [kfit] = fit_rate_constants(t, y, fn, kinit, kmethod, init, curve, iter
     %%%%% and the rate constants are set
     %%%%% into kfit.
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    num_iter_constant_error = 0;
-    while((numiter<maxiter) || (num_iter_constant_error > 1))
+    error_decreased = 1;
+    while((numiter<maxiter) || (error_decreased > 0))
     numiter++;
     %%flag to see if error was decreased even once in this iteration%%
     error_decreased = 0;
@@ -236,12 +236,16 @@ function [kfit] = fit_rate_constants(t, y, fn, kinit, kmethod, init, curve, iter
     for i = 1:len
         k = kfit;
 
-        zeroerr = 1e-16;
+        zeroerr = 1e-10;
 
-        if(ne(kmethod(i),1))
-            [prev_err, curr_err, low, high] = doublingMethod(t,y,fn,k,init,curve,zeroerr,i,iter);
+        if(eq(kmethod(i),0))
+            [prev_err, curr_err, low, high] = doublingMethod(t,y,fn,k,init,curve,kinterval{i}(1),i,iter);
+        elseif(eq(kmethod(i),1))
+            [prev_err, curr_err, low, high] = iterativeMethod(t,y,fn,k,init,curve,i,kinterval{i}(1),kinterval{i}(2));
         else
-            [prev_err, curr_err, low, high] = iterativeMethod(t,y,fn,k,init,curve,zeroerr,i);
+            printf("Skipping calculation for rate constant k(%d)\n",i);
+            myflush();
+            continue;
         endif
 
         %errl, errh, errm (err low, high, mid)
@@ -264,7 +268,6 @@ function [kfit] = fit_rate_constants(t, y, fn, kinit, kmethod, init, curve, iter
         %this is the binary search error for low.
         for j =1:iter
             printf("binsrch iteration = %d\n",j);
-            myflush();
             mid = (low+high)/2;
             printf("i = %d, low = %e, high = %e, mid = %e\n",i,low,high,mid);
             myflush();
@@ -299,16 +302,13 @@ function [kfit] = fit_rate_constants(t, y, fn, kinit, kmethod, init, curve, iter
             printf("global err decreased\n\n");
             error_decreased = 1;
         endif
-        disp(kfit);
+        for iterator = 1:length(kfit)
+            printf("k(%d) = %e\n",iterator, kfit(iterator));
+        endfor
         myflush();
 
     endfor
 
-    if(error_decreased == 1)
-        num_iter_constant_error = 0;
-    else
-        num_iter_constant_error++;
-    endif
     endwhile
 endfunction
 
@@ -382,23 +382,27 @@ endfunction
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%Replacing doubling with for loop
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function[prev_err, curr_err, low, high] = iterativeMethod(t,y,fn,k,init,curve,zeroerr,i)
+function[prev_err, curr_err, low, high] = iterativeMethod(t,y,fn,k,init,curve,i,leftInterval, rightInterval)
 printf("Using iterative method for rate constant k(%d)\n",i);
         min_error = Inf;
         prev_err = curr_err = Inf;
-        rate = zeroerr;
-        for j=1:32 %chosen arbitrarily
+        bins = 30;
+        diff = (rightInterval - leftInterval)/bins; %chosen arbitrarily
+        for j=1:bins
+            rate = (j-1)*diff + leftInterval;
             prev_err = curr_err;
             curr_err = calculateError(t,y,fn,k,init,curve,rate,i);
             if(curr_err < min_error)
                 k(i) = rate;
-                high = rate * 1e1;
-                low = rate * 1e-1;
+                high = rate +diff;
+                low = rate -diff;
+                if(rate - diff < 0)
+                    low = 0;
+                endif
                 min_error = curr_err;
             endif
             printf("iterative mode: k(%d) = %e, err=%e\n",i,rate,curr_err);
             myflush();
-            rate *= 10;
         endfor
 
         prev_err = isIncreasingError(t,y,fn,k,init,curve,low,i);

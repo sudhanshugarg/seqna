@@ -37,6 +37,8 @@ function [t,y] = processData(fname,col1,col2,left,right,options, yl, yn)
    if(options(5))
         y = smooth(y,21);
    endif
+   %{
+   %}
 
    %6 signifies whether to normalize
    %according to mintime.
@@ -54,7 +56,7 @@ function [t,y] = processData(fname,col1,col2,left,right,options, yl, yn)
 endfunction
 
 
-function s = solveode2(fn, init)
+function s = solveode2(fn, init, shouldFit)
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%Initial Concentrations - usually
@@ -64,7 +66,6 @@ function s = solveode2(fn, init)
    init(2) = 0; %TB1
    init(4) = 0; %A2
    init(6) = 0; %A3
-   init(12) = 0; %TA1
    init(14) = 0; %TA
    init(19) = 87.46; %B1
    init(21) = 92.95; %B2
@@ -99,14 +100,46 @@ function s = solveode2(fn, init)
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
    %cuvette 3
    options(1) = 100;
-   options(3) = 1;
+   options(3) = 0;
    options(5) = 0;
-   %[t1x3,y1x3] = processData('sampledata.csv' , 3, 4, 760, 7830,options,0,0);
-   [t1x2,y1x2] = readlhcfile('sampledata.csv' , 1, 2, 7900/60, 9900/60);
-   [t0x2,y0x2] = processData('sampledata.csv' , 1, 2, 767, 7836,options,0,y1x2);
-
-   tcalc = t0x2;
-   ycalc = y0x2;
+   %{
+   init(12) = 92.15; %TA1
+   [t1x3,y1x3] = processData('system-b/PurifiedSysB-Apr18-200nM.csv' , 3, 4, 760, 7830,options,0,0);
+   %}
+   %{
+   options(3) = 1;
+   init(12) = 0; %TA1
+   [t1x2,y1x2] = readlhcfile('system-b/PurifiedSysB-Apr18-200nM.csv' , 1, 2, 7900/60, 9900/60);
+   [t0x2,y0x2] = processData('system-b/PurifiedSysB-Apr18-200nM.csv' , 1, 2, 767, 7836,options,0,y1x2);
+   init(12) = 39.73; %TA1
+   [tpt5x3,ypt5x3] = processData('system-b/PurifiedSysB-Apr18-100nM-pt5x-pt4x.csv' , 3, 4, 702, 7000, options, 0, 0);
+   init(12) = 14.82; %TA1
+   [tpt4x2,ypt4x2] = processData('system-b/PurifiedSysB-Apr18-100nM-pt5x-pt4x.csv' , 1, 2, 705, 7000, options, 0, 0);
+   init(12) = 28.38; %TA1
+   [tpt3x3,ypt3x3] = processData('system-b/PurifiedSysB-Apr18-100nM-pt3x-pt2x.csv' , 3, 4, 700, 7000, options, 0, 0);
+   init(12) = 16.96; %TA1
+   [tpt2x2,ypt2x2] = processData('system-b/PurifiedSysB-Apr18-100nM-pt3x-pt2x.csv' , 1, 2, 700, 7000, options, 0, 0);
+   init(12) = 14.02; %TA1
+   [tpt1x3,ypt1x3] = processData('system-b/PurifiedSysB-pt1x-ptoh5x.csv' , 3, 4, 928, 20000,options,0,0);
+   init(12) = 4.74; %TA1
+   [tptoh5x2,yptoh5x2] = processData('system-b/PurifiedSysB-pt1x-ptoh5x.csv' , 1, 2, 925, 80000,options,0,0);
+   init(12) = 92.15; %TA1
+    [tNA1x2,yNA1x2] = processData('sysb-may1/Check-Sys-B.csv' , 5, 6, 1900, 3300, options, 0, 0);
+    [tNA1x2,yNA1x2] = processData('sysb-may1/Check-Sys-B-100nM-new.csv' , 5, 6, 1100, 2700, options, 0, 0);
+    [tNA1x2,yNA1x2] = processData('sysb-may1/Check-Sys-B-200nM-new.csv' , 5, 6, 1750, 3100, options, 0, 0);
+   %}
+   init(1) = 95.77; init(4) = 88.02; init(6) = 93.12; init(14) = 100; init(30) = 100; init(2) = 95.47;
+   %{
+    [tCC0a1b2,yCC0a1b2] = processData('sysb-may1/Cross-catalytic-100nMTF.csv' , 1, 2, 1100, 8000, options, 0, 0);
+    init(2) = 0;
+    [tCC0a0b3,yCC0a0b3] = processData('sysb-may1/Cross-catalytic-100nMTF.csv' , 3, 4, 1100, 8000, options, 0, 0);
+   init(2) = 6.78;
+   [tCC0apt05b2,yCC0apt05b2] = processData('sysb-may1/Cross-catalytic-ptoh5x.csv' , 1, 2, 1400, 3700, options, 0, 0);
+   %}
+   init(2) = 0;
+   init(12) = 4.74;
+   [tCCpt05a0b3,yCCpt05a0b3] = processData('sysb-may1/Cross-catalytic-ptoh5x.csv' , 3, 4, 1400, 3700, options, 0, 0);
+   tcalc = tCCpt05a0b3; ycalc = yCCpt05a0b3;
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    %Calculate Fit.
@@ -114,47 +147,67 @@ function s = solveode2(fn, init)
 
    k = zeros(9,1);
    kmethod = zeros(9,1);
+   kinterval = {};
    %kmethod(i) = 1 => using iterative, else default using doubling.
    %currently all unimolecular reaction use iterative methods
    %rate of hairpin + initiator strand
-   k(1) = 2.3928e-4; %DONE
+   k(1) = 1.62e-4; %DONE
+   kmethod(1) = 1;
+   kinterval{1} = [1e-5, 3.4e-4];
 
    % rate of displacement of initiator (unimolecular)
-   k(2) = 5.05e-16; %DONE
+   k(2) = 5.69e-2; %DONE
+   %k(2) = 50; %DONE
    kmethod(2) = 1;
+   kinterval{2} = [1e-4, 1.3e-3];
 
    % rate of toehold exchange - reversibly
-   k(3) = 1.7e-4; %DONE
+   k(3) = 7.6875e-5; %DONE
+   kmethod(3) = 1; % don't calculate
+   kinterval{3} = [1e-6, 1e-4];
 
    % rate of B2 displacing RC irreversibly.
-   k(4) = 9.22e+2;
+   k(4) = 1.6715e-1;
+   kmethod(4) = 1;
+   kinterval{4} = [1e-3, 1e+1];
 
    % rate of two hairpins opening up
-   k(5) = 5.05e-15; %DONE, leak rate
-   %k(5) = 5.52e-07; %DONE, leak rate
+   k(5) = 8.66e-8; %DONE, leak rate
+   kmethod(5) = 1;
+   kinterval{5} = [1e-8, 1e-6];
 
    % rate of just hairpin B2 opening up RC
    %k(6) = 5.76e-07; %DONE
    k(6) = 5.05e-14; %DONE
+   kmethod(6) = 1;
+   kinterval{6} = [1e-14, 1e-10];
 
    % rate of two single strands hybridizing.
    k(7) = 4e-3; %kta
-   %kta = 7e-2; 
+   kmethod(7) = 1; % don't calculate
+   kinterval{7} = [1e-3, 1e+3];
 
    % rate of duplex dehybridizing
-   k(8) = 5e-6; %krta
-   kmethod(8) = 1;
+   k(8) = 1.46615e-3; %krta
+   kmethod(8) = 2;
+   kinterval{8} = [1e-9, 1e-2];
 
    % rate of RC duplex dehybridizing
-   k(9) = 3.9672e-3; %RC opening up spontaneously.
-   kmethod(9) = 1;
+   %k(9) = 9.505e-7; %RC opening up spontaneously.
+   k(9) = 0;
+   kmethod(9) = 2;
+   kinterval{9} = [0, 0];
 
    %33 is the TET curve, and 1000 is max number of iterations.
    %k is the initial set of values being passed.
    curve = 33;
    %64 chosen since assuming that the upper limit of any rate constant is
    %2^64 * 1e-16 ~ 2k /nMs, which is quite fast.
-   [kfit] = fit_rate_constants(tcalc,ycalc,fn,k,kmethod,init,curve,64);
+   if(ne(shouldFit,0))
+   [kfit] = fit_rate_constants(tcalc,ycalc,fn,k,kmethod,kinterval,init,curve,64);
+   else
+       kfit = k;
+   endif
 
    g = @(x,t) fn(x,t,kfit);
    try
@@ -165,10 +218,8 @@ function s = solveode2(fn, init)
    end_try_catch
 
    fit = fitcalc(:,curve);
-
-   %{
-       init(2) = 95.47;
-   %}
+   err = only_leastsquares(fit,ycalc);
+   printf("error for this curve is %e\n",err);
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
    %PLOT DATA
@@ -176,10 +227,9 @@ function s = solveode2(fn, init)
    l = length(init);
    i = 1;
    plotColor = rand(20,3);
-   h = figure(1);
 
    ops = {
-            'tcalc', 'ycalc', 'B123 0x Cuv 3 Apr 18'
+            'tcalc', 'ycalc', 'AB123 TA TB Expt',
             'tcalc', 'fit', 'fit for curve'
         };
 
@@ -196,7 +246,7 @@ function s = solveode2(fn, init)
    s = 1;
         ax = gca();
         set(ax, 'fontsize', 15);
-        filename = round(time() - 1399320000);
+        filename = round(time() - 1400000000);
         filename = [num2str(filename) '.jpg']
         print (filename, '-djpg');
 endfunction
